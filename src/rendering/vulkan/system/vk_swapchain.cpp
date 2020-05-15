@@ -274,8 +274,8 @@ void VulkanSwapChain::SelectFormat()
 		for (const auto &format : surfaceFormats)
 		{
 			// support some of the standard HDR10 supported color formats. 
-			// many platforms (read all) support BGR10A2 as the main colorspace for HDR10, as SMPTE 2084 is a 12-bit color HDR standard.
-			// consumes less swapchain memory compared to FP16, as it's a 12-bit color instead of 16-bit color HDR swapchain.
+			// many platforms (read all) support BGR10A2 as the main colorspace for HDR10, as SMPTE 2084 is a 10-bit color HDR standard.
+			// consumes less swapchain memory compared to FP16, as it's a 10-bit color instead of 16-bit color HDR swapchain.
 			if (format.format == VK_FORMAT_A2B10G10R10_UNORM_PACK32)
 			{
 				if (format.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT || format.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT)
