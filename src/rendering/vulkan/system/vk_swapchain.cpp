@@ -217,6 +217,8 @@ bool VulkanSwapChain::CreateSwapChain(VkSwapchainKHR oldSwapChain)
 		return false;
 	}
 
+	SetHdrMetadata();
+
 	return true;
 }
 
@@ -269,22 +271,37 @@ void VulkanSwapChain::SelectFormat()
 
 	if (vk_hdr)
 	{
-		for (const auto& format : surfaceFormats)
-		{
-			if (format.format == VK_FORMAT_R16G16B16A16_SFLOAT && format.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT)
-			{
-				swapChainFormat = format;
-				return;
-			}
-		}
-
-		// For older drivers that reported the wrong colorspace
 		for (const auto &format : surfaceFormats)
 		{
-			if (format.format == VK_FORMAT_R16G16B16A16_SFLOAT && format.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT)
+			// support some of the standard HDR10 supported color formats. 
+			// many platforms (read all) support BGR10A2 as the main colorspace for HDR10, as SMPTE 2084 is a 12-bit HDR standard.
+			if (format.format == VK_FORMAT_A2B10G10R10_UNORM_PACK32)
 			{
-				swapChainFormat = format;
-				return;
+				if (format.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT || format.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT)
+				{
+					swapChainFormat = format;
+					return;
+				}
+				
+			}
+			if (format.format == VK_FORMAT_R32G32B32A32_SFLOAT)
+			{
+				if (format.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT || format.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT)
+				{
+					swapChainFormat = format;
+					return;
+				}
+			}
+
+			// FP16 HDR10 support. Can be used instead. Allows for windowed HDR support on some platforms.
+			// consumes more swapchain memory.
+			if (format.format == VK_FORMAT_R16G16B16A16_SFLOAT)
+			{
+				if ((format.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT) || (format.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT))
+				{
+					swapChainFormat = format;
+					return;
+				}
 			}
 		}
 	}
@@ -325,6 +342,33 @@ void VulkanSwapChain::SelectPresentMode()
 		else if (supportsImmediate)
 			swapChainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 	}
+}
+
+void VulkanSwapChain::SetHdrMetadata()
+{
+	if (!IsHdrModeActive())
+		return;
+
+	// Mastering display with HDR10_ST2084 color primaries and D65 white point,
+	// maximum luminance of 1000 nits and minimum luminance of 0.001 nits;
+	// content has maximum luminance of 2000 nits and maximum frame average light level (MaxFALL) of 500 nits.
+
+	VkHdrMetadataEXT metadata = {};
+	metadata.sType = VK_STRUCTURE_TYPE_HDR_METADATA_EXT;
+	metadata.displayPrimaryRed.x = 0.708f;
+	metadata.displayPrimaryRed.y = 0.292f;
+	metadata.displayPrimaryGreen.x = 0.170f;
+	metadata.displayPrimaryGreen.y = 0.797f;
+	metadata.displayPrimaryBlue.x = 0.131f;
+	metadata.displayPrimaryBlue.y = 0.046f;
+	metadata.whitePoint.x = 0.3127f;
+	metadata.whitePoint.y = 0.3290f;
+	metadata.maxLuminance = 1000.0f;
+	metadata.minLuminance = 0.001f;
+	metadata.maxContentLightLevel = 2000.0f;
+	metadata.maxFrameAverageLightLevel = 500.0f;
+
+	vkSetHdrMetadataEXT(device->device, 1, &swapChain, &metadata);
 }
 
 void VulkanSwapChain::GetImages()
