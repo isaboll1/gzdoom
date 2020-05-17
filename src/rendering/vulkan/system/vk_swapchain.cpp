@@ -364,7 +364,7 @@ void VulkanSwapChain::SetHdrMetadata()
 	metadata.displayPrimaryBlue.y = 0.046f;
 	metadata.whitePoint.x = 0.3127f;
 	metadata.whitePoint.y = 0.3290f;
-	metadata.maxLuminance = 1000.0f;
+	metadata.maxLuminance = 428.0f;
 	metadata.minLuminance = 0.001f;
 	metadata.maxContentLightLevel = 2000.0f;
 	metadata.maxFrameAverageLightLevel = 500.0f;
